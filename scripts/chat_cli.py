@@ -1,7 +1,7 @@
 """
-New and upgraded chat mode because a lot of the code has changed since the last one.
+新的升级版聊天模式，因为上一个版本以来很多代码已经改变。
 
-Intended to be run single GPU only atm:
+目前设计为仅单 GPU 运行：
 python -m scripts.chat_cli
 """
 import argparse
@@ -10,14 +10,14 @@ from nanochat.common import compute_init, autodetect_device_type
 from nanochat.engine import Engine
 from nanochat.checkpoint_manager import load_model
 
-parser = argparse.ArgumentParser(description='Chat with the model')
-parser.add_argument('-i', '--source', type=str, default="sft", help="Source of the model: sft|rl")
-parser.add_argument('-g', '--model-tag', type=str, default=None, help='Model tag to load')
-parser.add_argument('-s', '--step', type=int, default=None, help='Step to load')
-parser.add_argument('-p', '--prompt', type=str, default='', help='Prompt the model, get a single response back')
-parser.add_argument('-t', '--temperature', type=float, default=0.6, help='Temperature for generation')
-parser.add_argument('-k', '--top-k', type=int, default=50, help='Top-k sampling parameter')
-parser.add_argument('--device-type', type=str, default='', choices=['cuda', 'cpu', 'mps'], help='Device type for evaluation: cuda|cpu|mps. empty => autodetect')
+parser = argparse.ArgumentParser(description='和模型聊天')
+parser.add_argument('-i', '--source', type=str, default="sft", help="模型来源：sft|rl")
+parser.add_argument('-g', '--model-tag', type=str, default=None, help='要加载的模型 tag')
+parser.add_argument('-s', '--step', type=int, default=None, help='要加载的 step')
+parser.add_argument('-p', '--prompt', type=str, default='', help='向模型发送 prompt，并只获取一次回复')
+parser.add_argument('-t', '--temperature', type=float, default=0.6, help='生成用 temperature')
+parser.add_argument('-k', '--top-k', type=int, default=50, help='Top-k 采样参数')
+parser.add_argument('--device-type', type=str, default='', choices=['cuda', 'cpu', 'mps'], help='评估设备类型：cuda|cpu|mps。留空 => 自动检测')
 args = parser.parse_args()
 
 # Init the model and tokenizer
@@ -34,10 +34,10 @@ assistant_start, assistant_end = tokenizer.encode_special("<|assistant_start|>")
 # Create Engine for efficient generation
 engine = Engine(model, tokenizer)
 
-print("\nNanoChat Interactive Mode")
+print("\nNanoChat 交互模式")
 print("-" * 50)
-print("Type 'quit' or 'exit' to end the conversation")
-print("Type 'clear' to start a new conversation")
+print("输入 'quit' 或 'exit' 结束对话")
+print("输入 'clear' 开始新对话")
 print("-" * 50)
 
 conversation_tokens = [bos]
@@ -50,19 +50,19 @@ while True:
     else:
         # Get the prompt interactively from the console
         try:
-            user_input = input("\nUser: ").strip()
+            user_input = input("\n用户：").strip()
         except (EOFError, KeyboardInterrupt):
-            print("\nGoodbye!")
+            print("\n再见！")
             break
 
     # Handle special commands
     if user_input.lower() in ['quit', 'exit']:
-        print("Goodbye!")
+        print("再见！")
         break
 
     if user_input.lower() == 'clear':
         conversation_tokens = [bos]
-        print("Conversation cleared.")
+        print("对话已清空。")
         continue
 
     if not user_input:
@@ -82,7 +82,7 @@ while True:
         "top_k": args.top_k,
     }
     response_tokens = []
-    print("\nAssistant: ", end="", flush=True)
+    print("\n助手：", end="", flush=True)
     for token_column, token_masks in engine.generate(conversation_tokens, **generate_kwargs):
         token = token_column[0] # pop the batch dimension (num_samples=1)
         response_tokens.append(token)

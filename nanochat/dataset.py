@@ -39,19 +39,19 @@ def list_parquet_files(data_dir=None, warn_on_legacy=False):
         if warn_on_legacy:
             print()
             print("=" * 80)
-            print("  WARNING: DATASET UPGRADE REQUIRED")
+            print("  警告：需要升级数据集")
             print("=" * 80)
             print()
-            print(f"  Could not find: {data_dir}")
+            print(f"  找不到：{data_dir}")
             print()
-            print("  nanochat recently switched from FinewebEdu-100B to ClimbMix-400B.")
-            print("  Everyone who does `git pull` as of March 4, 2026 is expected to see this message.")
-            print("  To upgrade to the new ClimbMix-400B dataset, run these two commands:")
+            print("  nanochat 最近已从 FinewebEdu-100B 切换到 ClimbMix-400B。")
+            print("  截至 2026 年 3 月 4 日，执行 `git pull` 的用户预计会看到此消息。")
+            print("  要升级到新的 ClimbMix-400B 数据集，请运行以下两个命令：")
             print()
-            print("    python -m nanochat.dataset -n 170     # download ~170 shards, enough for GPT-2, adjust as desired")
-            print("    python -m scripts.tok_train           # re-train tokenizer on new ClimbMix data")
+            print("    python -m nanochat.dataset -n 170     # 下载约 170 个 shard，足够 GPT-2 级别使用，可按需调整")
+            print("    python -m scripts.tok_train           # 在新的 ClimbMix 数据上重新训练 tokenizer")
             print()
-            print("  For now, falling back to your old FinewebEdu-100B dataset...")
+            print("  目前将回退到你的旧 FinewebEdu-100B 数据集...")
             print("=" * 80)
             print()
         # attempt a fallback to the legacy data directory
@@ -82,18 +82,18 @@ def parquets_iter_batched(split, start=0, step=1):
 
 # -----------------------------------------------------------------------------
 def download_single_file(index):
-    """ Downloads a single file index, with some backoff """
+    """下载单个文件 index，带少量 backoff。"""
 
     # Construct the local filepath for this file and skip if it already exists
     filename = index_to_filename(index)
     filepath = os.path.join(DATA_DIR, filename)
     if os.path.exists(filepath):
-        print(f"Skipping {filepath} (already exists)")
+        print(f"跳过 {filepath}（已存在）")
         return True
 
     # Construct the remote URL for this file
     url = f"{BASE_URL}/{filename}"
-    print(f"Downloading {filename}...")
+    print(f"正在下载 {filename}...")
 
     # Download with retries
     max_attempts = 5
@@ -109,11 +109,11 @@ def download_single_file(index):
                         f.write(chunk)
             # Move temp file to final location
             os.rename(temp_path, filepath)
-            print(f"Successfully downloaded {filename}")
+            print(f"成功下载 {filename}")
             return True
 
         except (requests.RequestException, IOError) as e:
-            print(f"Attempt {attempt}/{max_attempts} failed for {filename}: {e}")
+            print(f"{filename} 第 {attempt}/{max_attempts} 次尝试失败：{e}")
             # Clean up any partial files
             for path in [filepath + f".tmp", filepath]:
                 if os.path.exists(path):
@@ -124,19 +124,19 @@ def download_single_file(index):
             # Try a few times with exponential backoff: 2^attempt seconds
             if attempt < max_attempts:
                 wait_time = 2 ** attempt
-                print(f"Waiting {wait_time} seconds before retry...")
+                print(f"等待 {wait_time} 秒后重试...")
                 time.sleep(wait_time)
             else:
-                print(f"Failed to download {filename} after {max_attempts} attempts")
+                print(f"{filename} 在 {max_attempts} 次尝试后仍下载失败")
                 return False
 
     return False
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Download pretraining dataset shards")
-    parser.add_argument("-n", "--num-files", type=int, default=-1, help="Number of train shards to download (default: -1), -1 = disable")
-    parser.add_argument("-w", "--num-workers", type=int, default=4, help="Number of parallel download workers (default: 4)")
+    parser = argparse.ArgumentParser(description="下载预训练数据集 shards")
+    parser.add_argument("-n", "--num-files", type=int, default=-1, help="要下载的 train shards 数量（默认：-1），-1 = 禁用")
+    parser.add_argument("-w", "--num-workers", type=int, default=4, help="并行下载 worker 数量（默认：4）")
     args = parser.parse_args()
 
     # Prepare the output directory
@@ -149,12 +149,12 @@ if __name__ == "__main__":
     ids_to_download.append(MAX_SHARD) # always download the validation shard
 
     # Download the shards
-    print(f"Downloading {len(ids_to_download)} shards using {args.num_workers} workers...")
-    print(f"Target directory: {DATA_DIR}")
+    print(f"正在使用 {args.num_workers} 个 worker 下载 {len(ids_to_download)} 个 shards...")
+    print(f"目标目录：{DATA_DIR}")
     print()
     with Pool(processes=args.num_workers) as pool:
         results = pool.map(download_single_file, ids_to_download)
 
     # Report results
     successful = sum(1 for success in results if success)
-    print(f"Done! Downloaded: {successful}/{len(ids_to_download)} shards to {DATA_DIR}")
+    print(f"完成！已下载：{successful}/{len(ids_to_download)} 个 shards 到 {DATA_DIR}")

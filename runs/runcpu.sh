@@ -1,16 +1,16 @@
 #!/bin/bash
 
-# Showing an example run for exercising some of the code paths on the CPU (or MPS on Macbooks)
-# This script was last updated/tuned on Jan 17, 2026.
+# 展示一个在 CPU（或 MacBook 的 MPS）上跑通部分代码路径的示例。
+# 本脚本最后一次更新/调优时间为 2026 年 1 月 17 日。
 
-# Run as:
+# 运行方式：
 # bash runs/runcpu.sh
 
-# NOTE: Training LLMs requires GPU compute and $$$. You will not get far on your Macbook.
-# Think of this run as educational/fun demo, not something you should expect to work well.
-# You may also want to run this script manually and one by one, copy pasting commands into your terminal.
+# 注意：训练 LLM 需要 GPU 算力和经费。只靠 MacBook 走不了太远。
+# 请把这个 run 当成教学/有趣演示，而不是预期能得到好效果的流程。
+# 也可以手动逐条运行本脚本，把命令复制粘贴到终端中执行。
 
-# all the setup stuff
+# 各种环境设置
 export NANOCHAT_BASE_DIR="$HOME/.cache/nanochat"
 mkdir -p $NANOCHAT_BASE_DIR
 command -v uv &> /dev/null || curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -21,14 +21,14 @@ if [ -z "$WANDB_RUN" ]; then
     WANDB_RUN=dummy
 fi
 
-# train tokenizer on ~2B characters (~34 seconds on my MacBook Pro M3 Max)
+# 在约 2B 字符上训练 tokenizer（在作者的 MacBook Pro M3 Max 上约 34 秒）
 python -m nanochat.dataset -n 8
 python -m scripts.tok_train --max-chars=2000000000
 python -m scripts.tok_eval
 
-# train a small 4 layer model
-# I tuned this run to complete in about 30 minutes on my MacBook Pro M3 Max.
-# To get better results, try increasing num_iterations, or get other ideas from your favorite LLM.
+# 训练一个小型 4 层模型
+# 作者把这个 run 调到在 MacBook Pro M3 Max 上约 30 分钟完成。
+# 要获得更好结果，可以尝试增加 num_iterations，或向你喜欢的 LLM 寻找其他思路。
 python -m scripts.base_train \
     --depth=6 \
     --head-dim=64 \
@@ -44,7 +44,7 @@ python -m scripts.base_train \
     --run=$WANDB_RUN
 python -m scripts.base_eval --device-batch-size=1 --split-tokens=16384 --max-per-task=16
 
-# SFT (~10 minutes on my MacBook Pro M3 Max)
+# SFT（在作者的 MacBook Pro M3 Max 上约 10 分钟）
 curl -L -o $NANOCHAT_BASE_DIR/identity_conversations.jsonl https://karpathy-public.s3.us-west-2.amazonaws.com/identity_conversations.jsonl
 python -m scripts.chat_sft \
     --max-seq-len=512 \
@@ -55,11 +55,11 @@ python -m scripts.chat_sft \
     --num-iterations=1500 \
     --run=$WANDB_RUN
 
-# Chat with the model over CLI
-# The model should be able to say that it is Paris.
-# It might even know that the color of the sky is blue.
-# Sometimes the model likes it if you first say Hi before you ask it questions.
+# 通过 CLI 和模型聊天
+# 模型应该能回答法国首都是 Paris。
+# 它甚至可能知道天空是蓝色的。
+# 有时在提问前先说 Hi，模型会表现得更好。
 # python -m scripts.chat_cli -p "What is the capital of France?"
 
-# Chat with the model over a pretty WebUI ChatGPT style
+# 通过漂亮的 ChatGPT 风格 WebUI 和模型聊天
 # python -m scripts.chat_web
